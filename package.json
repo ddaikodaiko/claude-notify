@@ -1,5 +1,5 @@
 {
-  "name": "claude-notify",
+  "name": "@daik0z/claude-notify",
   "version": "1.0.0",
   "description": "Push notifications when Claude Code finishes working — desktop, mobile (ntfy), and webhooks.",
   "keywords": ["claude", "claude-code", "notifications", "ntfy", "productivity"],
