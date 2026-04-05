@@ -6,6 +6,11 @@ const CLAUDE_CONFIG_DIR = join(homedir(), '.claude')
 const SETTINGS_PATH = join(CLAUDE_CONFIG_DIR, 'settings.json')
 const HOOK_COMMAND = 'claude-notify send'
 
+interface HookEntry {
+  matcher?: string
+  hooks: { type: string; command: string }[]
+}
+
 interface ClaudeSettings {
   hooks?: {
     Stop?: HookEntry[]
@@ -14,15 +19,12 @@ interface ClaudeSettings {
   [key: string]: unknown
 }
 
-interface HookEntry {
-  matcher?: string
-  hooks: { type: string; command: string }[]
-}
-
 function loadSettings(): ClaudeSettings {
   if (!existsSync(SETTINGS_PATH)) return {}
   try {
-    return JSON.parse(readFileSync(SETTINGS_PATH, 'utf8')) as ClaudeSettings
+    const parsed = JSON.parse(readFileSync(SETTINGS_PATH, 'utf8'))
+    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) return {}
+    return parsed as ClaudeSettings
   } catch {
     return {}
   }
@@ -34,20 +36,21 @@ function saveSettings(settings: ClaudeSettings): void {
 }
 
 function isAlreadyInstalled(settings: ClaudeSettings): boolean {
-  return settings.hooks?.Stop?.some(entry =>
-    entry.hooks?.some(h => h.command === HOOK_COMMAND),
-  ) ?? false
+  const stop = settings.hooks?.Stop
+  if (!Array.isArray(stop)) return false
+  return stop.some(entry =>
+    Array.isArray(entry.hooks) && entry.hooks.some(h => h.command === HOOK_COMMAND),
+  )
 }
 
 export function install(): { alreadyInstalled: boolean } {
   const settings = loadSettings()
-
-  if (isAlreadyInstalled(settings)) {
-    return { alreadyInstalled: true }
-  }
+  if (isAlreadyInstalled(settings)) return { alreadyInstalled: true }
 
   if (!settings.hooks) settings.hooks = {}
-  if (!settings.hooks.Stop) settings.hooks.Stop = []
+
+  // Ensure Stop is an array even if the file had it as something else
+  if (!Array.isArray(settings.hooks.Stop)) settings.hooks.Stop = []
 
   settings.hooks.Stop.push({
     hooks: [{ type: 'command', command: HOOK_COMMAND }],
@@ -59,21 +62,21 @@ export function install(): { alreadyInstalled: boolean } {
 
 export function uninstall(): { wasInstalled: boolean } {
   const settings = loadSettings()
+  if (!isAlreadyInstalled(settings)) return { wasInstalled: false }
 
-  if (!isAlreadyInstalled(settings)) {
-    return { wasInstalled: false }
-  }
-
-  if (settings.hooks?.Stop) {
-    settings.hooks.Stop = settings.hooks.Stop
+  const stop = settings.hooks?.Stop
+  if (Array.isArray(stop)) {
+    settings.hooks!.Stop = stop
       .map(entry => ({
         ...entry,
-        hooks: entry.hooks.filter(h => h.command !== HOOK_COMMAND),
+        hooks: Array.isArray(entry.hooks)
+          ? entry.hooks.filter(h => h.command !== HOOK_COMMAND)
+          : [],
       }))
       .filter(entry => entry.hooks.length > 0)
 
-    if (settings.hooks.Stop.length === 0) delete settings.hooks.Stop
-    if (Object.keys(settings.hooks).length === 0) delete settings.hooks
+    if (settings.hooks!.Stop!.length === 0) delete settings.hooks!.Stop
+    if (settings.hooks && Object.keys(settings.hooks).length === 0) delete settings.hooks
   }
 
   saveSettings(settings)

@@ -51,7 +51,11 @@ program
     const config = loadConfig()
     console.log(`Hook:     ${installed ? '✓ installed' : '✗ not installed (run setup)'}`)
     console.log(`Desktop:  ${config.channels.desktop ? '✓ enabled' : '✗ disabled'}`)
-    console.log(`ntfy:     ${config.channels.ntfy.enabled ? `✓ ${config.channels.ntfy.server}/${config.channels.ntfy.topic}` : '✗ disabled'}`)
+    const topic = config.channels.ntfy.topic
+    const maskedTopic = topic.length > 8
+      ? `${topic.slice(0, 4)}${'*'.repeat(topic.length - 8)}${topic.slice(-4)}`
+      : '*'.repeat(topic.length)
+    console.log(`ntfy:     ${config.channels.ntfy.enabled ? `✓ ${config.channels.ntfy.server}/${maskedTopic}` : '✗ disabled'}`)
     console.log(`Webhook:  ${config.channels.webhook.enabled ? `✓ ${config.channels.webhook.url}` : '✗ disabled'}`)
   })
 
@@ -72,10 +76,20 @@ configCmd
   .command('set <key> <value>')
   .description('Set a config value (e.g. channels.ntfy.topic my-topic)')
   .action((key: string, value: string) => {
-    const config = loadConfig()
-    const updated = setConfigValue(config, key, value)
-    saveConfig(updated)
-    console.log(`✓ ${key} = ${getConfigValue(updated, key)}`)
+    // Reject empty key segments (e.g. ".foo", "a..b")
+    if (!key || key.split('.').some(k => k === '')) {
+      console.error(`Error: invalid config key "${key}"`)
+      process.exit(1)
+    }
+    try {
+      const config = loadConfig()
+      const updated = setConfigValue(config, key, value)
+      saveConfig(updated)
+      console.log(`✓ ${key} = ${getConfigValue(updated, key)}`)
+    } catch (e) {
+      console.error(`Error: ${e instanceof Error ? e.message : String(e)}`)
+      process.exit(1)
+    }
   })
 
 // ─── send (called by hook) ───────────────────────────────────────────────────
@@ -105,9 +119,11 @@ program
     }
 
     if (config.channels.ntfy.enabled && config.channels.ntfy.topic) {
+      const t = config.channels.ntfy.topic
+      const masked = t.length > 8 ? `${t.slice(0, 4)}***${t.slice(-4)}` : '***'
       try {
         await sendNtfy(config.channels.ntfy.server, config.channels.ntfy.topic, title, body)
-        console.log(`  ✓ ntfy (${config.channels.ntfy.topic})`)
+        console.log(`  ✓ ntfy (${masked})`)
       } catch (e) {
         console.log(`  ✗ ntfy: ${e instanceof Error ? e.message : 'error'}`)
       }

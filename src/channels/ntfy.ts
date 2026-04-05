@@ -1,5 +1,10 @@
 const FETCH_TIMEOUT_MS = 5000
 
+// Strip CRLF — prevents HTTP header injection
+function sanitizeHeader(s: string): string {
+  return s.replace(/[\r\n]/g, ' ').trim()
+}
+
 export async function sendNtfy(
   server: string,
   topic: string,
@@ -8,7 +13,6 @@ export async function sendNtfy(
 ): Promise<void> {
   if (!topic) return
 
-  // Sanitize server URL — must be http(s)
   const base = server.replace(/\/$/, '')
   if (!/^https?:\/\//i.test(base)) throw new Error('ntfy server must start with http:// or https://')
 
@@ -20,7 +24,7 @@ export async function sendNtfy(
     await fetch(url, {
       method: 'POST',
       headers: {
-        'Title': title,
+        'Title': sanitizeHeader(title),
         'Content-Type': 'text/plain; charset=utf-8',
         'Priority': 'default',
         'Tags': 'white_check_mark',
