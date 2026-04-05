@@ -1,0 +1,32 @@
+{
+  "name": "claude-notify",
+  "version": "1.0.0",
+  "description": "Push notifications when Claude Code finishes working — desktop, mobile (ntfy), and webhooks.",
+  "keywords": ["claude", "claude-code", "notifications", "ntfy", "productivity"],
+  "homepage": "https://github.com/daik0z/claude-notify",
+  "repository": "github:daik0z/claude-notify",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/cli.js",
+  "bin": {
+    "claude-notify": "./dist/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "commander": "^12.1.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5",
+    "@types/node": "^20.14.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
