@@ -1,8 +1,14 @@
 {
   "name": "@daik0z/claude-notify",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Push notifications when Claude Code finishes working — desktop, mobile (ntfy), and webhooks.",
-  "keywords": ["claude", "claude-code", "notifications", "ntfy", "productivity"],
+  "keywords": [
+    "claude",
+    "claude-code",
+    "notifications",
+    "ntfy",
+    "productivity"
+  ],
   "homepage": "https://github.com/daik0z/claude-notify",
   "repository": "github:daik0z/claude-notify",
   "license": "MIT",
