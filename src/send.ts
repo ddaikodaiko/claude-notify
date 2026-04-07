@@ -82,9 +82,9 @@ function parseStats(transcriptPath?: string): string | null {
     const bashes = toolNames.filter(n => n === 'Bash').length
 
     const parts: string[] = []
-    if (writes > 0) parts.push(`${writes} archivo${writes !== 1 ? 's' : ''} editado${writes !== 1 ? 's' : ''}`)
-    if (reads  > 0) parts.push(`${reads} lectura${reads !== 1 ? 's' : ''}`)
-    if (bashes > 0) parts.push(`${bashes} comando${bashes !== 1 ? 's' : ''}`)
+    if (writes > 0) parts.push(`${writes} file${writes !== 1 ? 's' : ''} edited`)
+    if (reads  > 0) parts.push(`${reads} read${reads !== 1 ? 's' : ''}`)
+    if (bashes > 0) parts.push(`${bashes} command${bashes !== 1 ? 's' : ''}`)
 
     return parts.length > 0 ? parts.join(' · ') : null
   } catch {
@@ -100,6 +100,9 @@ export async function send(): Promise<void> {
     const raw = (await readStdin()).trim()
     if (raw) {
       const parsed = JSON.parse(raw) as Record<string, unknown>
+      // stop_hook_active = true means a previous Stop hook is still running.
+      // Skip to avoid duplicate notifications when Claude finishes rapidly.
+      if (parsed?.stop_hook_active === true) return
       if (typeof parsed?.transcript_path === 'string') {
         transcriptPath = parsed.transcript_path
       }
@@ -109,7 +112,7 @@ export async function send(): Promise<void> {
   }
 
   const title = config.message.title
-  let body = 'Tarea completada.'
+  let body = 'Task complete.'
 
   if (config.message.includeStats) {
     const stats = parseStats(transcriptPath)
