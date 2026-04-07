@@ -7,10 +7,22 @@ import { sendDesktop } from './channels/desktop.js'
 import { sendNtfy } from './channels/ntfy.js'
 import { sendWebhook } from './channels/webhook.js'
 
+// Read version from package.json at runtime — stays in sync automatically
+import { createRequire } from 'module'
+const require = createRequire(import.meta.url)
+const { version } = require('../package.json') as { version: string }
+
 program
   .name('claude-notify')
   .description('Push notifications when Claude Code finishes working.')
-  .version('1.0.0')
+  .version(version)
+
+// ─── helpers ─────────────────────────────────────────────────────────────────
+
+function maskSecret(s: string): string {
+  if (s.length <= 8) return '*'.repeat(s.length)
+  return `${s.slice(0, 4)}${'*'.repeat(s.length - 8)}${s.slice(-4)}`
+}
 
 // ─── setup ──────────────────────────────────────────────────────────────────
 
@@ -51,12 +63,26 @@ program
     const config = loadConfig()
     console.log(`Hook:     ${installed ? '✓ installed' : '✗ not installed (run setup)'}`)
     console.log(`Desktop:  ${config.channels.desktop ? '✓ enabled' : '✗ disabled'}`)
-    const topic = config.channels.ntfy.topic
-    const maskedTopic = topic.length > 8
-      ? `${topic.slice(0, 4)}${'*'.repeat(topic.length - 8)}${topic.slice(-4)}`
-      : '*'.repeat(topic.length)
-    console.log(`ntfy:     ${config.channels.ntfy.enabled ? `✓ ${config.channels.ntfy.server}/${maskedTopic}` : '✗ disabled'}`)
-    console.log(`Webhook:  ${config.channels.webhook.enabled ? `✓ ${config.channels.webhook.url}` : '✗ disabled'}`)
+    const { enabled: ntfyEnabled, topic, server } = config.channels.ntfy
+    let ntfyStatus: string
+    if (!ntfyEnabled) {
+      ntfyStatus = '✗ disabled'
+    } else if (!topic) {
+      ntfyStatus = '⚠ enabled but no topic set (run: claude-notify config set channels.ntfy.topic <topic>)'
+    } else {
+      ntfyStatus = `✓ ${server}/${maskSecret(topic)}`
+    }
+    console.log(`ntfy:     ${ntfyStatus}`)
+    const { enabled: whEnabled, url: whUrl } = config.channels.webhook
+    let whStatus: string
+    if (!whEnabled) {
+      whStatus = '✗ disabled'
+    } else if (!whUrl) {
+      whStatus = '⚠ enabled but no URL set (run: claude-notify config set channels.webhook.url <url>)'
+    } else {
+      whStatus = `✓ ${whUrl}`
+    }
+    console.log(`Webhook:  ${whStatus}`)
   })
 
 // ─── config ─────────────────────────────────────────────────────────────────
@@ -109,7 +135,7 @@ program
   .action(async () => {
     const config = loadConfig()
     const title = config.message.title
-    const body = 'Esto es una prueba de claude-notify.'
+    const body = '3 files edited · 2 commands'
 
     console.log('Sending test notification...')
 
@@ -120,10 +146,9 @@ program
 
     if (config.channels.ntfy.enabled && config.channels.ntfy.topic) {
       const t = config.channels.ntfy.topic
-      const masked = t.length > 8 ? `${t.slice(0, 4)}***${t.slice(-4)}` : '***'
       try {
         await sendNtfy(config.channels.ntfy.server, config.channels.ntfy.topic, title, body)
-        console.log(`  ✓ ntfy (${masked})`)
+        console.log(`  ✓ ntfy (${maskSecret(t)})`)
       } catch (e) {
         console.log(`  ✗ ntfy: ${e instanceof Error ? e.message : 'error'}`)
       }

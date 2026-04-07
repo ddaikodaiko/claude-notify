@@ -137,5 +137,13 @@ export function setConfigValue(config: Config, keyPath: string, value: string): 
     }
   }
 
+  // Post-assignment validation for known enum fields
+  if (keyPath === 'channels.webhook.method') {
+    const method = current[lastKey]
+    if (method !== 'POST' && method !== 'GET') {
+      throw new Error(`channels.webhook.method must be "POST" or "GET", got "${method}"`)
+    }
+  }
+
   return result
 }
