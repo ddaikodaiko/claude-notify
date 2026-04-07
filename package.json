@@ -10,12 +10,15 @@
     "productivity"
   ],
   "homepage": "https://github.com/daik0z/claude-notify",
-  "repository": "github:daik0z/claude-notify",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/daik0z/claude-notify.git"
+  },
   "license": "MIT",
   "type": "module",
   "main": "./dist/cli.js",
   "bin": {
-    "claude-notify": "./dist/cli.js"
+    "claude-notify": "dist/cli.js"
   },
   "files": [
     "dist"
