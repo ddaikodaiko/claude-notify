@@ -9,10 +9,10 @@
     "ntfy",
     "productivity"
   ],
-  "homepage": "https://github.com/daik0z/claude-notify",
+  "homepage": "https://github.com/ddaikodaiko/claude-notify",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/daik0z/claude-notify.git"
+    "url": "git+https://github.com/ddaikodaiko/claude-notify.git"
   },
   "license": "MIT",
   "type": "module",
