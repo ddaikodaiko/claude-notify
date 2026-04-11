@@ -12,8 +12,16 @@ interface HookInput {
   transcript_path?: string
 }
 
+interface ContentItem {
+  type?: string
+  name?: string
+}
+
 interface TranscriptEntry {
-  toolName?: string
+  message?: {
+    role?: string
+    content?: ContentItem[]
+  }
 }
 
 const MAX_STDIN_BYTES = 64 * 1024        // 64 KB — enough for any hook payload
@@ -33,17 +41,18 @@ async function readStdin(): Promise<string> {
     }
 
     process.stdin.setEncoding('utf8')
+    const done = (result: string) => { clearTimeout(timer); process.stdin.destroy(); resolve_(result) }
+
     process.stdin.on('data', (chunk: string) => {
       size += Buffer.byteLength(chunk)
       if (size > MAX_STDIN_BYTES) {
-        clearTimeout(timer)
-        resolve_(data)        // discard rest — payload too large
+        done(data)        // discard rest — payload too large
         return
       }
       data += chunk
     })
-    process.stdin.on('end', () => { clearTimeout(timer); resolve_(data) })
-    process.stdin.on('error', () => { clearTimeout(timer); resolve_(data) })
+    process.stdin.on('end', () => done(data))
+    process.stdin.on('error', () => done(data))
   })
 }
 
@@ -72,10 +81,21 @@ function parseStats(transcriptPath?: string): string | null {
     if (size > MAX_TRANSCRIPT_BYTES) return null   // skip oversized transcripts
 
     const lines = readFileSync(transcriptPath, 'utf8').trim().split('\n')
-    const toolNames: string[] = lines
-      .map(l => { try { return JSON.parse(l) as TranscriptEntry } catch { return null } })
-      .filter((e): e is TranscriptEntry => e !== null && typeof e.toolName === 'string')
-      .map(e => e.toolName as string)
+    const toolNames: string[] = []
+    for (const l of lines) {
+      try {
+        const entry = JSON.parse(l) as TranscriptEntry
+        const content = entry?.message?.content
+        if (!Array.isArray(content)) continue
+        for (const item of content) {
+          if (item?.type === 'tool_use' && typeof item.name === 'string') {
+            toolNames.push(item.name)
+          }
+        }
+      } catch {
+        // skip malformed lines
+      }
+    }
 
     const writes = toolNames.filter(n => n === 'Write' || n === 'Edit').length
     const reads  = toolNames.filter(n => n === 'Read').length

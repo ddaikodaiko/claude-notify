@@ -2,12 +2,14 @@
 
 Get notified when Claude Code finishes working. Supports desktop (macOS, Linux, Windows), mobile via [ntfy](https://ntfy.sh), and custom webhooks.
 
+Also gives each git worktree its own stable loopback IP — so parallel Claude sessions don't fight over dev server ports.
+
 ---
 
 ## Install
 
 ```bash
-npm install -g claude-notify
+npm install -g @daik0z/claude-notify
 claude-notify setup
 ```
 
@@ -60,6 +62,39 @@ Default body template: `{"text": "{{title}}: {{body}}"}` — change with `channe
 
 ---
 
+## Worktree IP isolation
+
+When running multiple Claude Code sessions in parallel, each session spins up its own dev server — and they all try to use the same ports.
+
+`claude-notify ip` prints a stable loopback IP derived from the current git worktree path. Same worktree always gets the same IP. Different worktrees get different IPs. Bind your servers to it and they'll never conflict.
+
+```bash
+# print the IP for the current worktree
+claude-notify ip
+# → 127.19.222.162
+
+# use it directly
+vite --host $(claude-notify ip)
+npm start -- --host $(claude-notify ip)
+```
+
+Or export it once at the start of the session:
+
+```bash
+export HOST=$(claude-notify ip)
+# now $HOST is available to any command in this shell
+```
+
+**Linux:** no setup needed — the kernel routes the entire `127.0.0.0/8` block to loopback automatically.
+
+**macOS:** run once per system boot to register the alias:
+
+```bash
+claude-notify ip --setup   # runs: sudo ifconfig lo0 alias <ip> up
+```
+
+---
+
 ## Commands
 
 | Command | Description |
@@ -70,6 +105,8 @@ Default body template: `{"text": "{{title}}: {{body}}"}` — change with `channe
 | `claude-notify test` | Fire a test notification on all channels |
 | `claude-notify config show` | Print current config |
 | `claude-notify config set <key> <value>` | Set a config value |
+| `claude-notify ip` | Print stable loopback IP for current worktree |
+| `claude-notify ip --setup` | Register loopback alias (macOS only) |
 
 ---
 

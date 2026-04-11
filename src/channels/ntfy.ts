@@ -21,7 +21,7 @@ export async function sendNtfy(
   const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS)
 
   try {
-    await fetch(url, {
+    const res = await fetch(url, {
       method: 'POST',
       headers: {
         'Title': sanitizeHeader(title),
@@ -32,6 +32,7 @@ export async function sendNtfy(
       body,
       signal: controller.signal,
     })
+    if (!res.ok) throw new Error(`ntfy returned ${res.status}`)
   } finally {
     clearTimeout(timer)
   }

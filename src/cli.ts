@@ -6,6 +6,7 @@ import { send } from './send.js'
 import { sendDesktop } from './channels/desktop.js'
 import { sendNtfy } from './channels/ntfy.js'
 import { sendWebhook } from './channels/webhook.js'
+import { getWorktreeRoot, worktreeIp, ensureAlias } from './ip.js'
 
 // Read version from package.json at runtime — stays in sync automatically
 import { createRequire } from 'module'
@@ -83,6 +84,12 @@ program
       whStatus = `✓ ${whUrl}`
     }
     console.log(`Webhook:  ${whStatus}`)
+    const root = getWorktreeRoot()
+    if (root) {
+      console.log(`IP:       ${worktreeIp(root)}  (this worktree)`)
+    } else {
+      console.log(`IP:       — (not in a git repo)`)
+    }
   })
 
 // ─── config ─────────────────────────────────────────────────────────────────
@@ -166,6 +173,35 @@ program
 
     if (!config.channels.desktop && !config.channels.ntfy.enabled && !config.channels.webhook.enabled) {
       console.log('  No channels enabled. Run: claude-notify config set channels.desktop true')
+    }
+  })
+
+// ─── ip ──────────────────────────────────────────────────────────────────────
+
+program
+  .command('ip')
+  .description('Print the stable loopback IP for the current git worktree')
+  .option('--setup', 'Add the loopback alias (macOS only — requires sudo, no-op on Linux)')
+  .option('--export', 'Print as shell export (eval $(claude-notify ip --export))')
+  .action((opts: { setup?: boolean; export?: boolean }) => {
+    const root = getWorktreeRoot()
+    if (!root) {
+      console.error('Error: not inside a git repository')
+      process.exit(1)
+    }
+    const ip = worktreeIp(root)
+    if (opts.setup) {
+      try {
+        ensureAlias(ip)
+        console.log(`✓ Loopback alias ready: ${ip}`)
+      } catch (e) {
+        console.error(`Error: ${e instanceof Error ? e.message : String(e)}`)
+        process.exit(1)
+      }
+    } else if (opts.export) {
+      console.log(`export HOST=${ip}`)
+    } else {
+      console.log(ip)
     }
   })
 

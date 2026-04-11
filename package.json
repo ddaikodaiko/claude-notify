@@ -1,6 +1,6 @@
 {
   "name": "@daik0z/claude-notify",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "description": "Push notifications when Claude Code finishes working — desktop, mobile (ntfy), and webhooks.",
   "keywords": [
     "claude",
@@ -26,7 +26,8 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
-    "prepublishOnly": "npm run build"
+    "test": "npm run build && node --test test/*.test.js",
+    "prepublishOnly": "npm run test"
   },
   "dependencies": {
     "commander": "^12.1.0"
