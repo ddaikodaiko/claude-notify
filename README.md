@@ -8,6 +8,8 @@ Also gives each git worktree its own stable loopback IP — so parallel Claude s
 
 ## Install
 
+Requires Node.js 18 or later.
+
 ```bash
 npm install -g @daik0z/claude-notify
 claude-notify setup
